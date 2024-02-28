@@ -84,3 +84,98 @@ document.querySelector('.overlay_vacancy').addEventListener('click', ()=>{
     modal.classList.remove('overlay_active')
     }
 })
+
+
+///////
+//render card
+///////
+function renderCard(cards){
+let list = document.querySelector('.result__list')
+list.innerHTML = ''
+cards.forEach((el)=>{
+
+let{
+id,
+address,
+compensation,
+description,
+employer,
+title,
+date,
+workSchedule
+} = el
+
+list.insertAdjacentHTML('afterbegin',`
+<li class="result__item">
+             <article class="vacancy">
+               <h2 class="vacancy__title"><a href="#" data-vacancy="${id}">${title}</a></h2>
+               <p class="vacancy__compensation">${compensation}</p>
+               <p class="vacancy__work-schedule">${workSchedule}</p>
+               <div class="vacancy__employer">
+                 <p class="vacancy__employer-title">${employer}</p>
+                 <p class="vacancy__employer-address">${address}</p>
+               </div>
+               <div class="vacancy__description">
+                 <p class="vacancy__description">${description}</p>
+               </div>
+               <p class="vacancy__date">
+                 <time datetime="${date}">${date}</time>
+               </p>
+               <div class="vacancy__wrapper-btn">
+                 <a class="vacancy__response" href="#" data-vacancy="${id}">Откликнуться</a>
+                 <button class="vacancy__contacts">Показать контакты</button>
+               </div>
+             </article>
+           </li>`)
+          })
+}
+
+function getData(obj){
+  if(obj ){
+    return fetch(`http://localhost:3000/api/vacancy?search=${obj.search}`)
+    .then((data)=>{
+    return data.json()
+      })
+  }
+return fetch('http://localhost:3000/api/vacancy')
+.then((data)=>{
+  return data.json()
+})
+}
+async function getInfo(){
+  let cards = await getData()
+  console.log(cards)
+  renderCard(cards)
+}
+
+getInfo()
+actualFound(null)
+
+let formSearch = document.querySelector('.bottom__search')
+formSearch.addEventListener('submit', ()=>{
+  event.preventDefault()
+
+  let text = formSearch.search.value
+  if(text.length < 2){
+    formSearch.search.style.borderColor = 'red'
+  }else{
+    formSearch.search.style.borderColor = '#888b8c'
+    getData({search: text}).then((data)=>{
+      renderCard(data)
+      actualFound(data.length, text)
+      })
+  }
+})
+
+function actualFound(numb, search){
+  let find = document.querySelector('.found')
+  if(!numb && numb !== 0){
+    find.style.display = 'none'
+    return
+  }
+  else{
+    find.style.display = 'block'
+  }
+  find.innerHTML = `${numb} вакансий
+  <span class='found__item'>"${search}"</span>`
+}
