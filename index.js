@@ -31,11 +31,17 @@ list2.addEventListener('click',()=>{
     event.target.classList.add('option__item_active')
     list2.classList.toggle('option__list_active')
 })
+document.addEventListener('click',()=>{
+  if(event.target !== btn && event.target !== period ){
+    list.classList.remove('option__list_active')
+    list2.classList.remove('option__list_active')
+  }
+})
 })()
 
 /////////////
 /////////////
-
+///Модальне вікно міст, (зверху зліва)
     let topCity = document.querySelector('.top__city')
     let city = document.querySelector('.city')
     let cityClose = document.querySelector('.city__close')
@@ -58,40 +64,81 @@ list2.addEventListener('click',()=>{
 /////////////
 /////////////
 
-let modal = document.querySelector('.overlay_vacancy')
-
+let modalItem = document.querySelector('.overlay_vacancy')
 let resultItems = document.querySelector('.result__list')
-
 resultItems.addEventListener('click',()=>{
-
     if(event.target.dataset.vacancy){
         event.preventDefault()
-        modal.classList.add('overlay_active')
+        createModal.call(modalItem, event.target.dataset.vacancy)
     }
     if(event.target.classList.contains(' vacancy__open-modal')){
-        modal.classList.add('overlay_active')
+        createModal.call(modalItem, event.target.dataset.vacancy)
     }
 })
-
-let modalClose= document.querySelector('.modal__close')
-
-modalClose.addEventListener('click', ()=>{
-    modal.classList.remove('overlay_active')
-})
-
 document.querySelector('.overlay_vacancy').addEventListener('click', ()=>{
     if(event.target.classList.contains('overlay_vacancy')){
-    modal.classList.remove('overlay_active')
+      document.querySelector('.overlay_active').innerHTML = ''
+      document.querySelector('.overlay_active').classList.remove('overlay_active')
     }
 })
 
+async function createModal(id){
+let  {
+  address,
+  compensation,
+  description,
+  employer,
+  experience,
+  skills,
+  title,
+  employment
+} = await getData(null, id)
+
+let modal = document.createElement('div')
+modal.className = 'modal'
+modal.innerHTML = `
+  <h2 class="modal__title">${title}</h2>
+  <p class="modal__compensation">${compensation}</p>
+  <p class="modal__employer">${employer}</p>
+<p class="modal__address">${address}</p>
+  <p class="modal__experience">Требуемый опыт работы: ${experience}</p>
+  <p class="modal__employment">${employment.join(', ')}</p>
+  <p class="modal__description">${description}</p>
+  <div class="modal__skills skills">
+    <h2 class="skills__title">Подробнее:</h2>
+    <ul class="skills__list">
+    </ul>
+  </div>
+
+  <button class="modal__response">Отправить резюме</button>
+  `
+  skills.forEach((el)=>{
+    let li = document.createElement('li')
+    li.className = 'skills__item'
+    li.textContent = el
+    modal.querySelector('.skills__list').append(li)
+  })
+
+  let btnClose = document.createElement('button')
+  btnClose.className = 'modal__close'
+  btnClose.textContent = 'X'
+  btnClose.addEventListener('click',()=>{
+    document.querySelector('.overlay_active').innerHTML = ''
+    document.querySelector('.overlay_active').classList.remove('overlay_active')
+
+  })
+  modal.prepend(btnClose)
+
+  this.classList.add('overlay_active')
+  this.append(modal)
+}
 
 ///////
-//render card
 ///////
 function renderCard(cards){
 let list = document.querySelector('.result__list')
 list.innerHTML = ''
+
 cards.forEach((el)=>{
 
 let{
@@ -129,27 +176,22 @@ list.insertAdjacentHTML('afterbegin',`
            </li>`)
           })
 }
-
-function getData(obj){
+function getData(obj, id=''){
   if(obj ){
     return fetch(`http://localhost:3000/api/vacancy?search=${obj.search}`)
     .then((data)=>{
     return data.json()
       })
   }
-return fetch('http://localhost:3000/api/vacancy')
+return fetch(`http://localhost:3000/api/vacancy/${id}`)
 .then((data)=>{
   return data.json()
 })
 }
 async function getInfo(){
   let cards = await getData()
-  console.log(cards)
   renderCard(cards)
 }
-
-getInfo()
-actualFound(null)
 
 let formSearch = document.querySelector('.bottom__search')
 formSearch.addEventListener('submit', ()=>{
@@ -166,8 +208,17 @@ formSearch.addEventListener('submit', ()=>{
       })
   }
 })
+///Рендер вакансій
+getInfo()
+
+/// Відображаємо дані про кількість знадених вакансій через пошук
+actualFound(null)
 
 function actualFound(numb, search){
+  /// Правильне закінчення у цифр
+  const declOfNum = (n, titles) => titles[n % 10 === 1 && n % 100 !== 11 ?
+	  0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2];
+
   let find = document.querySelector('.found')
   if(!numb && numb !== 0){
     find.style.display = 'none'
@@ -176,6 +227,6 @@ function actualFound(numb, search){
   else{
     find.style.display = 'block'
   }
-  find.innerHTML = `${numb} вакансий
+  find.innerHTML = `${numb} ${declOfNum(numb,['вакансия','вакинсии','вакансий'])}
   <span class='found__item'>"${search}"</span>`
 }
