@@ -1,4 +1,5 @@
-(function (){
+
+function sorting(){
     let btn = document.querySelector('.option__btn_order')
 let list = document.querySelector('.option__list_order')
 btn.addEventListener('click',()=>{
@@ -7,6 +8,37 @@ btn.addEventListener('click',()=>{
 })
 list.addEventListener('click',function (){
     btn.textContent = event.target.textContent
+    document.getElementById('order_by').value = event.target.dataset.sort
+    let sortByOrder = document.getElementById('order_by').value
+    sort(sortByOrder)
+    ////
+    let sortByPeriod = document.getElementById('search_period').value
+    let filteredData = sortByDate(sortByPeriod)
+
+
+    let filteredData2 = null
+    let arr = document.querySelectorAll('.filter__input')
+    let a = Array.from(arr).filter((el)=>{
+    return el.checked
+    }).reduce((acc, el)=>{
+    if(acc[el.name]){
+      acc[el.name] = [acc[el.name], el.value].flat()
+    }else{
+      acc[el.name] = el.value
+    }
+    return acc
+    },{})
+
+    if(a.hasOwnProperty('salary')){
+     filteredData2 = sortBySalary(a.salary, filteredData)
+    }
+
+
+
+
+
+    renderCard(filteredData2 ? filteredData2 : filteredData)
+    ////
     let items = list.querySelectorAll('.option__item')
     items.forEach((el)=>{
         el.classList.remove('option__item_active')
@@ -24,22 +56,63 @@ period.addEventListener('click',()=>{
 
 list2.addEventListener('click',()=>{
     period.textContent = event.target.textContent
+    document.getElementById('search_period').value = event.target.dataset.date
+    let sortByPeriod = document.getElementById('search_period').value
+
+//////////////
+
+
+  let filteredData = sortByDate(sortByPeriod)
+  let filteredData2 = null
+
+
+    let arr = document.querySelectorAll('.filter__input')
+  let a = Array.from(arr).filter((el)=>{
+    return el.checked
+  }).reduce((acc, el)=>{
+    if(acc[el.name]){
+      acc[el.name] = [acc[el.name], el.value].flat()
+    }else{
+      acc[el.name] = el.value
+    }
+    return acc
+  },{})
+
+  if(a.hasOwnProperty('salary')){
+     filteredData2 = sortBySalary(a.salary, filteredData)
+  }
+
+    renderCard(filteredData2 ? filteredData2 : filteredData)
+
     let items = list2.querySelectorAll('.option__item')
     items.forEach((el)=>{
         el.classList.remove('option__item_active')
     })
     event.target.classList.add('option__item_active')
     list2.classList.toggle('option__list_active')
-})
-document.addEventListener('click',()=>{
+  })
+  document.addEventListener('click',()=>{
   if(event.target !== btn && event.target !== period ){
     list.classList.remove('option__list_active')
     list2.classList.remove('option__list_active')
   }
 })
-})()
+}
+sorting()
 
+function sortByDate(DATE, array = data){
+  let dateNow = new Date()
+  dateNow.setDate(dateNow.getDate() - DATE)
+
+  return array.filter((el)=>{
+
+    if(new Date(el.date).getTime() > new Date(dateNow).getTime()){
+      return true
+    }
+  })
+}
 /////////////
+let data = []
 /////////////
 ///Модальне вікно міст, (зверху зліва)
     let topCity = document.querySelector('.top__city')
@@ -57,7 +130,19 @@ document.addEventListener('click',()=>{
 
     cityRegion.addEventListener('click',()=>{
         if(event.target.classList.contains('city__link')){
-            topCity.textContent = event.target.textContent
+          topCity.textContent = event.target.textContent
+
+          let hash = new URL(event.target.href).hash.substring(1)
+
+          let options = {
+            [hash]:topCity.textContent
+          }
+
+          getData(options).then(response=>{
+            data = response
+            let sortByOrder = document.getElementById('order_by').value
+            sort(sortByOrder)
+            renderCard(data)})
             city.classList.remove('city_active')
         }
     })
@@ -83,6 +168,7 @@ document.querySelector('.overlay_vacancy').addEventListener('click', ()=>{
 })
 
 async function createModal(id){
+
 let  {
   address,
   compensation,
@@ -177,20 +263,29 @@ list.insertAdjacentHTML('afterbegin',`
           })
 }
 function getData(obj, id=''){
-  if(obj ){
-    return fetch(`http://localhost:3000/api/vacancy?search=${obj.search}`)
-    .then((data)=>{
-    return data.json()
-      })
+  let url = `http://localhost:3000/api/vacancy/${id}`
+  if(obj){
+    if(obj.search){
+    url = `http://localhost:3000/api/vacancy?search=${obj.search}`
+    }
+    if(obj.country){
+      url = `http://localhost:3000/api/vacancy?country=${obj.country}`
+    }
+    if(obj.city){
+      url = `http://localhost:3000/api/vacancy?city=${obj.city}`
+    }
   }
-return fetch(`http://localhost:3000/api/vacancy/${id}`)
+return fetch(url)
 .then((data)=>{
   return data.json()
 })
 }
 async function getInfo(){
   let cards = await getData()
-  renderCard(cards)
+  data = cards
+  let sortByOrder = document.getElementById('order_by').value
+  sort(sortByOrder)
+  renderCard(data)
 }
 
 let formSearch = document.querySelector('.bottom__search')
@@ -202,7 +297,10 @@ formSearch.addEventListener('submit', ()=>{
     formSearch.search.style.borderColor = 'red'
   }else{
     formSearch.search.style.borderColor = '#888b8c'
-    getData({search: text}).then((data)=>{
+    getData({'search': text}).then((response)=>{
+      data = response
+      let sortByOrder = document.getElementById('order_by').value
+      sort(sortByOrder)
       renderCard(data)
       actualFound(data.length, text)
       })
@@ -230,3 +328,76 @@ function actualFound(numb, search){
   find.innerHTML = `${numb} ${declOfNum(numb,['вакансия','вакинсии','вакансий'])}
   <span class='found__item'>"${search}"</span>`
 }
+
+function sort(sort){
+  switch (sort){
+    case 'up':
+      data.sort((a,b)=>{
+        return a.minCompensation > b.minCompensation ? 1 : -1
+      })
+        break
+    case 'down':
+      data.sort((a,b)=>{
+        return a.minCompensation < b.minCompensation ? 1 : -1
+      })
+        break
+    case 'date':
+      data.sort((a,b)=>{
+         if(new Date(a.date).getTime() > new Date(b.date).getTime()){
+          return 1
+         }
+          return -1
+
+      })
+          break
+  }
+}
+////
+let filterForm = document.querySelector('.filter__form')
+let btnFiltered = document.querySelector('.filter__apply')
+let btnReset = document.querySelector('.filter__reset')
+let filter = document.querySelector('.filter')
+filter.addEventListener('click',()=>{
+  if(event.target.classList.contains('filter__input')){
+    btnFiltered.style.display = 'block'
+  }
+})
+filterForm.addEventListener('submit',()=>{
+  event.preventDefault()
+  let arr = document.querySelectorAll('.filter__input')
+  let a = Array.from(arr).filter((el)=>{
+    return el.checked
+  }).reduce((acc, el)=>{
+    if(acc[el.name]){
+      acc[el.name] = [acc[el.name], el.value].flat()
+    }else{
+      acc[el.name] = el.value
+    }
+    return acc
+  },{})
+
+  let sortByPeriod = document.getElementById('search_period').value
+  let filteredData1 = sortByDate(sortByPeriod)
+  let filteredData = sortBySalary(a.salary, filteredData1)
+  renderCard(filteredData)
+})
+
+btnReset.addEventListener('click',()=>{
+  event.preventDefault()
+  let arr = document.querySelectorAll('.filter__input')
+  let a = Array.from(arr).filter((el)=>{
+    return el.checked
+  })
+  a.forEach((el)=>{
+    el.checked = false
+  })
+  btnFiltered.style.display = 'none'
+  renderCard(data)
+})
+
+function sortBySalary(salary, array = data){
+  return array.filter((el)=>{
+    return el.minCompensation >= salary
+  })
+}
+
