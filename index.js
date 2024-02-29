@@ -1,11 +1,12 @@
 
 function SSsortByParams(){
-  console.log('Сортируем данные')
+
   sortByDateUpDown()
   let dataNext = sortByDatePeriod()
   let dataNext2 = sortByFormData(dataNext)
 
   renderCard(dataNext2)
+  return dataNext2
 }
 function sortByDateUpDown(){
 
@@ -67,7 +68,6 @@ function sortByFormData(dataArr){
     if(a.hasOwnProperty('type')){
       array = sortByEmployment(a.type, array ? array : dataArr)
     }
-    console.log(array)
     return array ? array: dataArr
 
     function sortBySalary(salary, array){
@@ -375,10 +375,9 @@ formSearch.addEventListener('submit', ()=>{
     formSearch.search.style.borderColor = '#888b8c'
     getData({'search': text}).then((response)=>{
       data = response
-      let sortByOrder = document.getElementById('order_by').value
-      sort(sortByOrder)
-      renderCard(data)
-      actualFound(data.length, text)
+      // console.log(data)
+      // SSsortByParams()
+      actualFound(SSsortByParams().length, text)
       })
   }
 })
@@ -414,6 +413,7 @@ filter.addEventListener('click',()=>{
     btnFiltered.style.display = 'block'
   }
 })
+
 filterForm.addEventListener('submit',()=>{
   event.preventDefault()
   let arr = document.querySelectorAll('.filter__input')
@@ -427,6 +427,7 @@ filterForm.addEventListener('submit',()=>{
     }
     return acc
   },{})
+
   SSsortByParams()
 })
 
@@ -440,6 +441,7 @@ btnReset.addEventListener('click',()=>{
     el.checked = false
   })
   btnFiltered.style.display = 'none'
+
   SSsortByParams()
 })
 
